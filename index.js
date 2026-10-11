@@ -79,7 +79,7 @@ function getToday() {
 	return {
 		year: Number(result.year),
 		month: Number(result.month),
-		day: Number(result.day),
+		day: 10,
 	}
 }
 
@@ -159,7 +159,7 @@ async function createSvg() {
 	// 月名月相
 	const yueMingYueXiang = {
 		text: monthAlias[lunar.getMonth()] + ' ' + lunar.getYueXiang(),
-		size: lunar.getYueXiang().length === 2 ? 19 : (lunar.getYueXiang().length === 3 ? 16 : 14)
+		size: lunar.getYueXiang().length <= 2 ? 19 : (lunar.getYueXiang().length === 3 ? 16 : 14)
 	};
 
 	const dayYi = (lunar.getDayYi().slice(0, 11) || []).join(' ')
@@ -169,6 +169,20 @@ async function createSvg() {
 	const shiChenJiXiong = [];
 	for (let i = 0; i < lunarTimes.length; i++) {
 		shiChenJiXiong.push(lunarTimes[i].getTianShenLuck());
+	}
+
+	// 日期x偏移量
+	const dayXArr = {
+		"230": [ 10,12,13,14,15,16,17,18,19 ],
+		"240": [ 1,2,3,4,5,6,7,8,9,11,20,22,23,24,25,26,27,28,29,30 ],
+		"250": [ 21,31 ],
+	}
+	let dayX = '250';
+	for (const key in dayXArr) {
+		if (dayXArr[key].indexOf(solar.getDay()) > -1) {
+			dayX = key;
+			break;
+		}
 	}
 
 	// 获取天气信息
@@ -210,7 +224,7 @@ return `
 		/>
 		<text x="240" y="40" font-family="Arial" font-size="40" fill="${color}" font-weight="bold" text-anchor="middle">${solar.getYear()}</text>
 		<!-- 日 -->
-		<text x="240" y="340" font-family="Arial" font-size="300" fill="${color}" font-weight="bold" text-anchor="middle">${solar.getDay()}</text>
+		<text x="${dayX}" y="340" font-family="Arial" font-size="300" fill="${color}" font-weight="bold" text-anchor="middle">${solar.getDay()}</text>
 		<!-- 道曆 -->
 		<text x="34" y="70" font-size="24" fill="${color}" text-anchor="middle">${DaoLi.getYear()}</text>
 		<text x="80" y="68" font-size="16" fill="black" text-anchor="middle">道曆</text>
