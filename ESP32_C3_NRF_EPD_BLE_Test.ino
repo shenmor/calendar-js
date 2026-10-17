@@ -1468,65 +1468,58 @@ void sleepUntilNextDay()
 {
     time_t now = time(nullptr);
 
-    // 如果时间无效，无法准确计算午夜。
-    // 这种异常情况使用 24 小时 RTC 定时作为兜底。
+    // 如果时间无效，无法准确计算定时点。
+    // 这种异常情况使用 12 小时 RTC 定时作为兜底。
     if (!isTimeValid()) {
-
         Serial.println();
-        Serial.println(
-            "当前时间无效，无法计算 00:00:01"
-        );
-
-        Serial.println(
-            "使用 24 小时深度睡眠作为兜底"
-        );
+        Serial.println("当前时间无效，无法计算定时唤醒时间");
+        Serial.println("使用 12 小时深度睡眠作为兜底");
 
         esp_sleep_enable_timer_wakeup(
-            24ULL * 60ULL * 60ULL * 1000000ULL
+            12ULL * 60ULL * 60ULL * 1000000ULL
         );
 
-        Serial.println(
-            "进入深度睡眠..."
-        );
-
+        Serial.println("进入深度睡眠...");
         Serial.flush();
-
         esp_deep_sleep_start();
-
         return;
     }
 
     struct tm nowInfo;
+    localtime_r(&now, &nowInfo);
 
-    localtime_r(
-        &now,
-        &nowInfo
-    );
+    // 计算今天的两个刷新时间：00:01 和 12:00。
+    struct tm midnightInfo = nowInfo;
+    midnightInfo.tm_hour = 0;
+    midnightInfo.tm_min  = 1;
+    midnightInfo.tm_sec  = 0;
+    time_t nextMidnight = mktime(&midnightInfo);
 
-    // 构造今天的 00:00:01
-    struct tm nextInfo =
-        nowInfo;
+    struct tm noonInfo = nowInfo;
+    noonInfo.tm_hour = 12;
+    noonInfo.tm_min  = 0;
+    noonInfo.tm_sec  = 0;
+    time_t nextNoon = mktime(&noonInfo);
 
-    nextInfo.tm_hour = 0;
-    nextInfo.tm_min  = 0;
-    nextInfo.tm_sec  = 1;
+    // 选择严格晚于当前时间的最近一个定时点。
+    time_t nextWake = 0;
+    struct tm nextInfo;
 
-    time_t nextWake =
-        mktime(&nextInfo);
-
-    // 如果今天的 00:00:01 已经过去，
-    // 就睡到明天 00:00:01。
-    if (nextWake <= now) {
-
-        nextInfo.tm_mday++;
-
-        nextWake =
-            mktime(&nextInfo);
+    if (nextMidnight > now && nextNoon > now) {
+        nextWake = (nextMidnight < nextNoon) ? nextMidnight : nextNoon;
+    } else if (nextMidnight > now) {
+        nextWake = nextMidnight;
+    } else if (nextNoon > now) {
+        nextWake = nextNoon;
+    } else {
+        // 今天两个时间都已过去，安排明天 00:01。
+        midnightInfo.tm_mday++;
+        nextWake = mktime(&midnightInfo);
     }
 
-    uint64_t sleepSeconds =
-        (uint64_t)(nextWake - now);
+    localtime_r(&nextWake, &nextInfo);
 
+    uint64_t sleepSeconds = (uint64_t)(nextWake - now);
     if (sleepSeconds < 1) {
         sleepSeconds = 1;
     }
@@ -1559,20 +1552,15 @@ void sleepUntilNextDay()
         (unsigned long long)sleepSeconds
     );
 
-    Serial.println(
-        "=============================="
-    );
+    Serial.println("每日计划：00:01 和 12:00 刷新");
+    Serial.println("==============================");
 
     esp_sleep_enable_timer_wakeup(
         sleepSeconds * 1000000ULL
     );
 
-    Serial.println(
-        "进入深度睡眠..."
-    );
-
+    Serial.println("进入深度睡眠...");
     Serial.flush();
-
     esp_deep_sleep_start();
 }
 

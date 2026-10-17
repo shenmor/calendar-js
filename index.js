@@ -79,7 +79,7 @@ function getToday() {
 	return {
 		year: Number(result.year),
 		month: Number(result.month),
-		day: 10,
+		day: Number(result.day),
 	}
 }
 
@@ -173,7 +173,7 @@ async function createSvg() {
 
 	// 日期x偏移量
 	const dayXArr = {
-		"230": [ 10,12,13,14,15,16,17,18,19 ],
+		"225": [ 10,12,13,14,15,16,17,18,19 ],
 		"240": [ 1,2,3,4,5,6,7,8,9,11,20,22,23,24,25,26,27,28,29,30 ],
 		"250": [ 21,31 ],
 	}
